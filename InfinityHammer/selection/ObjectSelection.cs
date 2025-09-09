@@ -470,6 +470,13 @@ public partial class ObjectSelection : BaseSelection
             piece.m_description +=
                 $"\n{topKeys.Length - 4} other types: {topKeys.Skip(4).Sum(kvp => kvp.Value)}";
         }
+    if (data.TryGetString(pars, ZDOVars.s_item, out var item) && obj.TryGetComponent<ItemStand>(out var itemStand))
+    {
+      var variant = data.TryGetInt(pars, ZDOVars.s_variant, out var v) ? v : 0;
+      var quality = data.TryGetInt(pars, ZDOVars.s_quality, out var q) ? q : 1;
+      var orientation = data.TryGetInt(pars, ZDOVars.s_type, out var t) ? t : 0;
+      itemStand.SetVisualItem(item, variant, quality, orientation);
+
     }
 
     public override DataEntry? GetData(int index = 0) {
