@@ -14,8 +14,9 @@ using ServerDevcommands;
 using Service;
 using UnityEngine;
 using UnityEngine.Rendering;
-using ArgoRegister = Argo.Registers.SettingsRegister;
-using SaveExtraData  = Argo.Registers.SaveExtraData;
+using ArgoSettings = Argo.Registers.GlobalSettings;
+using SaveExtraData = Argo.Registers.SaveExtraData;
+
 namespace InfinityHammer;
 
 public class HammerSaveCommandJ2
@@ -37,11 +38,16 @@ public class HammerSaveCommandJ2
         Helper.Command("hammer_save_j2",
             "[file name] [center=piece] [snap=piece] [data=true/false] [profile=true/false] - Saves the selection to a  json blueprint.",
             (args) => {
-                HammerHelper.CheatCheck();
-                Helper.ArgsCheck(args, 2, "Blueprint name is missing.");
-                var              player         = Helper.GetPlayer();
-                var              placementGhost = HammerHelper.GetPlacementGhost();
-                ArgoRegister config         = GetConfig(args, "InfintyHammer");
+                try {
+                    HammerHelper.CheatCheck();
+                    Helper.ArgsCheck(args, 2, "Blueprint name is missing.");
+                } catch (Exception e) {
+                    System.Console.WriteLine(e);
+                    ;
+                }
+                var          player         = Helper.GetPlayer();
+                var          placementGhost = HammerHelper.GetPlacementGhost();
+                ArgoSettings config         = GetConfig(args, "InfintyHammer");
 
                 var name = Path.GetFileNameWithoutExtension(args[1]) +
                     ".blueprint.json";
@@ -53,13 +59,12 @@ public class HammerSaveCommandJ2
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 //    File.Create(path);
 
-               
                 Vector3 placement_pos = player.m_placementGhost.transform.position;
 
                 try {
                     EntityStore store = new();
                     JobManager  jobs  = new();
-                
+
                     ImportSelectionJob importJob;
                     JsonExportJob      exportJob;
                     string             bp_name;
@@ -117,16 +122,15 @@ public class HammerSaveCommandJ2
             });
     }
 
-    public ArgoRegister GetConfig(Terminal.ConsoleEventArgs args, string name = "",
-        ArgoRegister? cfg_ = null) {
-        ArgoRegister cfg;
+    public ArgoSettings GetConfig(Terminal.ConsoleEventArgs args, string name = "",
+        ArgoSettings? cfg_ = null) {
+        ArgoSettings cfg;
         if (cfg_ == null) {
-            if (name != "") {
-                if (!ArgoRegister.TryGetConfig(name, out cfg)) {
-                    cfg = ArgoRegister.GetDefaultInstance().Clone(name);
-                }
+            if ((name != "") && (!ArgoSettings.TryGetConfig(name, out cfg)) &&
+                ArgoSettings.DefaultInstance().TryClonePreset(name, out cfg)) {
+                //
             } else {
-                cfg = ArgoRegister.GetDefaultInstance();
+                cfg = ArgoSettings.DefaultInstance();
             }
         } else {
             cfg = cfg_;

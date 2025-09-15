@@ -5,7 +5,7 @@ using Argo.Blueprint;
 using Data;
 using UnityEngine;
 using Argo.Zdo;
-using ArgoRegister = Argo.Registers.SettingsRegister;
+using ArgoSettings = Argo.Registers.GlobalSettings;
 using SaveExtraData  = Argo.Registers.SaveExtraData;
 
 namespace InfinityHammer;
@@ -17,7 +17,7 @@ public static class ArgoExtensions
 {
     public static readonly Dictionary<string, string> pars = new();
 
-    public static ArgoZVars ToArgoZVars(this DataEntry? data, ArgoRegister mConfig) {
+    public static ArgoZVars ToArgoZVars(this DataEntry? data, ArgoSettings mConfig) {
         return Convert(data, mConfig);
     }
     public static DataEntry ToDataEntry(this ArgoZVars argozdo) {
@@ -36,7 +36,7 @@ public static class ArgoExtensions
         data.ByteArrays = argozdo.ByteArrays?.ToDictionary((pair) => pair.Key, pair => pair.Value);
         return data;
     }
-    public static ArgoZVars Convert(DataEntry? data, ArgoRegister mConfig) {
+    public static ArgoZVars Convert(DataEntry? data, ArgoSettings mConfig) {
         var m_config = mConfig;
         if (mConfig.SaveMode != SaveExtraData.None) {
             var set = mConfig.Filter.Get();
@@ -86,7 +86,7 @@ public static class ArgoExtensions
     }
 
     public static MultiSelection CreateMultiSelection(GameObject? placementGhost_, ObjectSelection selection,
-        Player player, ArgoRegister mConfig) {
+        Player player, ArgoSettings mConfig) {
         if (placementGhost_ == null) { throw new ArgumentNullException("No objects selected."); }
         var piece = placementGhost_.GetComponent<Piece>();
 

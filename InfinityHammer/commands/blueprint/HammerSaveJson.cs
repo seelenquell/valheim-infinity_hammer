@@ -13,13 +13,13 @@ using ServerDevcommands;
 using Service;
 using UnityEngine;
 using UnityEngine.Rendering;
-using ArgoRegister = Argo.Registers.SettingsRegister;
-using SaveExtraData  = Argo.Registers.SaveExtraData;
+using ArgoSettings = Argo.Registers.GlobalSettings;
+using SaveExtraData = Argo.Registers.SaveExtraData;
 
 namespace InfinityHammer;
 
 public class HammerSaveCommandJson
-{ 
+{
     /*
     public HammerSaveCommandJson() {
         AutoComplete.Register("hammer_save_json", (int index) => {
@@ -105,15 +105,15 @@ public class HammerSaveCommandJson
                 }
             });
     }*/
-    public ArgoRegister GetConfig(Terminal.ConsoleEventArgs args, string name = "",
-        ArgoRegister? cfg_ = null) {
-        ArgoRegister cfg;
+    public ArgoSettings GetConfig(Terminal.ConsoleEventArgs args, string name = "",
+        ArgoSettings? cfg_ = null) {
+        ArgoSettings cfg;
         try {
             if (cfg_ == null) {
-                if (name != "") {
-                    cfg = ArgoRegister.GetDefaultInstance().Clone(name);
+                if ((name != "") && ArgoSettings.DefaultInstance().TryClonePreset(name, out cfg)) {
+                    //
                 } else {
-                    cfg = ArgoRegister.GetDefaultInstance();
+                    cfg = ArgoSettings.DefaultInstance();
                 }
             } else {
                 cfg = cfg_;

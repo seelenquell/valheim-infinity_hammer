@@ -148,7 +148,6 @@ public partial class ObjectSelection : BaseSelection
     }
 
     public ObjectSelection(Terminal terminal, SelectionBase argoSelection, Vector3 scale) {
-      
         if (!argoSelection.Wrapper || !argoSelection.SelectionWrapper) {
             throw new ArgumentException($"Error Selection Wrappers may not be null: {argoSelection.Name}");
         }
@@ -199,7 +198,7 @@ public partial class ObjectSelection : BaseSelection
 
                 Snapping.GenerateSnapPoints(SelectedPrefab);
             else
-              //  Snapping.CreateSnapPoints(SelectedPrefab, snapPoints.Select((go) => go.transform.localPosition).ToList());
+                //  Snapping.CreateSnapPoints(SelectedPrefab, snapPoints.Select((go) => go.transform.localPosition).ToList());
                 Snapping.CreateSnapPoints(SelectedPrefab, snapPoints);
         }
 
@@ -390,15 +389,13 @@ public partial class ObjectSelection : BaseSelection
             sign.m_textWidget.text = signText;
         }
 
+     
         if (data.TryGetString(pars, ZDOVars.s_item, out var item) &&
             obj.TryGetComponent<ItemStand>(out var itemStand)) {
-            var variant = data.TryGetInt(pars, ZDOVars.s_variant, out var v)
-                ? v
-                : 0;
-            var quality = data.TryGetInt(pars, ZDOVars.s_quality, out var q)
-                ? q
-                : 1;
-            itemStand.SetVisualItem(item, variant, quality);
+            var variant     = data.TryGetInt(pars, ZDOVars.s_variant, out var v) ? v : 0;
+            var quality     = data.TryGetInt(pars, ZDOVars.s_quality, out var q) ? q : 1;
+            var orientation = data.TryGetInt(pars, ZDOVars.s_type, out var t) ? t : 0;
+            itemStand.SetVisualItem(item, variant, quality, orientation);
         }
 
         if (obj.TryGetComponent<ArmorStand>(out var armorStand)) {
@@ -470,15 +467,7 @@ public partial class ObjectSelection : BaseSelection
             piece.m_description +=
                 $"\n{topKeys.Length - 4} other types: {topKeys.Skip(4).Sum(kvp => kvp.Value)}";
         }
-    if (data.TryGetString(pars, ZDOVars.s_item, out var item) && obj.TryGetComponent<ItemStand>(out var itemStand))
-    {
-      var variant = data.TryGetInt(pars, ZDOVars.s_variant, out var v) ? v : 0;
-      var quality = data.TryGetInt(pars, ZDOVars.s_quality, out var q) ? q : 1;
-      var orientation = data.TryGetInt(pars, ZDOVars.s_type, out var t) ? t : 0;
-      itemStand.SetVisualItem(item, variant, quality, orientation);
-
     }
-
     public override DataEntry? GetData(int index = 0) {
         if (Objects.Count <= index)
             throw new InvalidOperationException("Invalid index.");
