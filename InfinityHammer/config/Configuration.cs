@@ -62,6 +62,7 @@ public partial class Configuration
   public static float Range => IsCheats ? Parse.Float(configRange.Value) : 0f;
   public static ConfigEntry<bool> configPlaceEmptyRooms;
   public static bool PlaceEmptyRooms => configPlaceEmptyRooms.Value;
+  public static ConfigWrapper Wrapper;
   
   public static ConfigEntry<bool> configBlueprintNoChestContent;
   public static bool BlueprintNoChestContent => configBlueprintNoChestContent.Value;
@@ -74,7 +75,6 @@ public partial class Configuration
   
   
  
- public static ConfigWrapper Wrapper;
 
 #nullable enable
 
@@ -123,6 +123,7 @@ public partial class Configuration
     InitOther(wrapper);
     InitTools(wrapper);
     InitBlueprint(wrapper);
+    InitCustomMenu(wrapper);
   }
 
 }

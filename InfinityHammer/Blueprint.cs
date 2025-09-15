@@ -37,26 +37,18 @@ public class BlueprintObject(
 
 public class Blueprint 
 {
-    public virtual string Name { get => name; set => name = value; }
-    public virtual string Description { get => description; set => description = value; }
-    public virtual string Creator { get => creator; set => creator = value; }
-    public virtual Vector3 Coordinates { get => coordinates; set => coordinates = value; }
-    public virtual Vector3 Rotation { get => rotation; set => rotation = value; }
-    public virtual string CenterPiece { get => centerPiece; set => centerPiece = value; }
-    public virtual List<Vector3> SnapPoints { get => snapPoints; set => snapPoints = value; }
-    public virtual float Radius { get => radius; set => radius = value; }
-    public virtual List<BlueprintObject> Objects { get => objects; set => objects = value; }
 
-
-    public string name = "";
-    public string description = "";
-    public string creator = "";
-    public Vector3 coordinates = Vector3.zero;
-    public Vector3 rotation = Vector3.zero;
-    public string centerPiece = Configuration.BlueprintCenterPiece;
-    public List<BlueprintObject> objects = [];
-    public List<Vector3> snapPoints = [];
-    public float radius = 0f;
+  public string Name = "";
+  public string Description = "";
+  public string Creator = "";
+  public string Category = "";
+  public Vector3 Coordinates = Vector3.zero;
+  public Vector3 Rotation = Vector3.zero;
+  public string CenterPiece = Configuration.BlueprintCenterPiece;
+  public List<BlueprintObject> Objects = [];
+  public List<Vector3> SnapPoints = [];
+  public float Radius = 0f;
+ 
 
     public Vector3 Center(string centerPiece)
     {

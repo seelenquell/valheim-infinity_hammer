@@ -179,28 +179,32 @@ public static class HammerHelper
   ///<summary>Removes scripts that try to run (for example placement needs only the model and Piece component).</summary>
   private static void CleanObject(GameObject obj)
   {
-    DisableComponents<FootStep>(obj);
-    DisableComponents<Growup>(obj);
-    DisableComponents<RandomFlyingBird>(obj);
-    DisableComponents<Windmill>(obj);
+
+    // These are confirmed to cause issues.
+    DestroyComponents<RandomFlyingBird>(obj);
+    DestroyComponents<DungeonGenerator>(obj);
+    DestroyComponents<MusicLocation>(obj);
+    DisableComponents<Fish>(obj);
+
+    // Could be disables but destroying maybe better for performance.
+    DestroyComponents<FootStep>(obj);
+    DestroyComponents<Growup>(obj);
+    DestroyComponents<Windmill>(obj);
+
+    // changed to disable, some ppl like digging caves :)
     DisableComponents<MineRock>(obj);
-    DisableComponents<MineRock5>(obj); // changed to disable, some ppl like digging caves :)
-    // DestroyComponents<MineRock5>(obj);
-    DestroyComponents<Fish>(obj);
+    DisableComponents<MineRock5>(obj); 
+
     DestroyComponents<CharacterAnimEvent>(obj);
     DestroyComponents<TreeLog>(obj);
     DestroyComponents<TreeBase>(obj);
     DestroyComponents<CreatureSpawner>(obj);
     DestroyComponents<TombStone>(obj);
     DestroyComponents<Aoe>(obj);
-    DestroyComponents<DungeonGenerator>(obj);
-    DestroyComponents<MusicLocation>(obj);
     DestroyComponents<SpawnArea>(obj);
     DestroyComponents<Procreation>(obj);
     DestroyComponents<StaticPhysics>(obj);
     DestroyComponents<Tameable>(obj);
-    DestroyComponents<MonsterAI>(obj);
-    DestroyComponents<AnimalAI>(obj);
     DestroyComponents<Catapult>(obj);
 
     // Many things rely on Character so better just undo the Awake.
@@ -303,41 +307,8 @@ public static class HammerHelper
       return ZInput.instance.TryGetButtonState(key, b => b.Held == checkDown);
     return Enum.TryParse<KeyCode>(key, true, out var code) && (Input.GetKey(code) == checkDown);
   }
-  private static Dictionary<string, int> PrefabNames = [];
-  public static Sprite? FindSprite(string name)
-  {
-    if (!ZNetScene.instance) return null;
-    if (PrefabNames.Count == 0)
-    {
-      PrefabNames = ZNetScene.instance.m_namedPrefabs.GroupBy(kvp => kvp.Value.name.ToLower()).ToDictionary(kvp => kvp.Key, kvp => kvp.First().Key);
-    }
 
-    name = name.ToLower();
-    Sprite? sprite;
-    int spriteIndex = 1;
-    var name_parts = Parse.Split(name);
-    if (name_parts.Length > 1)
-    {
-      name = name_parts[0];
-      spriteIndex = int.TryParse(name_parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var index) ? index : 1;
-    }
-
-    if (PrefabNames.TryGetValue(name, out var hash))
-    {
-      var prefab = ZNetScene.instance.GetPrefab(hash);
-      sprite = prefab?.GetComponent<Piece>()?.m_icon;
-      if (sprite) return sprite;
-      sprite = prefab?.GetComponent<ItemDrop>()?.m_itemData?.m_shared?.m_icons.ElementAtOrDefault(spriteIndex - 1);
-      if (sprite) return sprite;
-    }
-    var effect = ObjectDB.instance.m_StatusEffects.Find(se => se.name.ToLower() == name);
-    sprite = effect?.m_icon;
-    if (sprite) return sprite;
-    var skill = Player.m_localPlayer.m_skills.m_skills.Find(skill => skill.m_skill.ToString().ToLower() == name);
-    sprite = skill?.m_icon;
-    if (sprite) return sprite;
-    return null;
-  }
+  public static Sprite? FindSprite(string name) => SpriteHelper.FindSprite(name);
 }
 [HarmonyPatch(typeof(Player), nameof(Player.Message))]
 public class ReplaceMessage
@@ -357,4 +328,39 @@ public class UnregisterRenderers
 {
   // ItemStyles use this and may cause issues for armor and item stands.
   static bool Prefix(MaterialMan __instance, GameObject gameObject) => __instance.m_blocks.ContainsKey(gameObject.GetInstanceID());
+}
+
+[HarmonyPatch(typeof(ItemDrop), nameof(ItemDrop.MakePiece))]
+public class PreventFishBecomingPieces
+{
+  // Vanilla automatically turns placed item drops to pieces.
+  // This removes body which breaks fishes (that have Piece for some reasoon).
+  // Also prevent pointless error message from missing Piece.
+  static bool Prefix(ItemDrop __instance) => __instance.GetComponent<Piece>() && !__instance.GetComponent<Fish>();
+}
+
+[HarmonyPatch(typeof(Fish), nameof(Fish.Awake))]
+public class PreventFishBeingPiece
+{
+  // Good idea also auto clean up fish that have gone wrong.
+  static void Postfix(Fish __instance)
+  {
+    var view = __instance.m_nview;
+    if (!view || !view.IsValid()) return;
+    view.GetZDO().Set(ZDOVars.s_piece, false);
+  }
+}
+
+// For some reason, vanilla messes up the object name.
+[HarmonyPatch(typeof(MineRock5), nameof(MineRock5.Awake))]
+public class MineRock5_NameFix
+{
+  static void Prefix(MineRock5 __instance, ref string __state)
+  {
+    __state = __instance.name;
+  }
+  static void Postfix(MineRock5 __instance, string __state)
+  {
+    __instance.name = __state;
+  }
 }

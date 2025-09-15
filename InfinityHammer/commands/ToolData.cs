@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Linq;
 using InfinityHammer;
 using ServerDevcommands;
-using Service;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -94,6 +93,7 @@ public class Tool
   private readonly string targetEdge;
   public bool IsTargetEdge => targetEdge == "true" || HammerHelper.IsDown(targetEdge);
   public bool IsId;
+
   public Tool(ToolData data)
   {
     Name = data.name;
