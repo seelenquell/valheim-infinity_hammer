@@ -15,6 +15,7 @@ public class HammerLocationCommand
 
     public HammerLocationCommand()
     {
+/* <<<<<<< Argonaut_experimental
         AutoComplete.Register("hammer_location", (int index, int subIndex) =>
         {
             if (index == 0) return ParameterInfo.LocationIds;
@@ -57,3 +58,28 @@ public class HammerLocationCommand
             });
     }
 }
+======= */
+      HammerHelper.CheatCheck();
+      Helper.ArgsCheck(args, 2, "Missing the location id.");
+      HammerHelper.Init();
+      try
+      {
+        Hammer.AllLocationsObjects = args.Length > 2 && args[2] == "all";
+        Hammer.RandomLocationDamage = args.Length > 3;
+        var rng = new System.Random();
+        var seed = args.TryParameterInt(2, rng.Next());
+        if (seed == 0) seed = rng.Next();
+        var location = ZoneSystem.instance.GetLocation(args[1].GetStableHashCode());
+        var ghost = Selection.CreateGhost(new LocationSelection(location, seed));
+        Hammer.SelectEmpty();
+        ghost.name = args[1];
+        PrintSelected(args.Context, ghost);
+      }
+      catch (InvalidOperationException e)
+      {
+        HammerHelper.Message(args.Context, e.Message);
+      }
+    });
+  }
+}
+// >>>>>>> main

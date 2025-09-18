@@ -1,7 +1,5 @@
-using System.IO;
 using Data;
 using ServerDevcommands;
-using Service;
 using UnityEngine;
 
 namespace InfinityHammer;
@@ -66,7 +64,6 @@ public class BaseSelection
   }
   public virtual void Deactivate()
   {
-    Hammer.SelectRepairIfEmpty();
   }
 
 }

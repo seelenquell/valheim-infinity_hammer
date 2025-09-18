@@ -16,6 +16,7 @@ using ArgoZVars = Argo.Blueprint.ZVars;
 // But they have to be the same because selection is changed when zooping.
 public partial class ObjectSelection : BaseSelection
 {
+/* <<<<<<< Argonaut_experimental
     // Unity doesn't run scripts for inactive objects.
     // So an inactive object is used to store the selected object.
     // This mimics the ZNetScene.m_namedPrefabs behavior.
@@ -27,6 +28,82 @@ public partial class ObjectSelection : BaseSelection
         UnityEngine.Object.Destroy(Wrapper);
         Objects.Clear();
         SelectedPrefab = null;
+======= */
+  // Unity doesn't run scripts for inactive objects.
+  // So an inactive object is used to store the selected object.
+  // This mimics the ZNetScene.m_namedPrefabs behavior.
+  private readonly GameObject Wrapper;
+  public List<SelectedObject> Objects = [];
+  public override void Destroy()
+  {
+    base.Destroy();
+    UnityEngine.Object.Destroy(Wrapper);
+    Objects.Clear();
+    SelectedPrefab = null;
+  }
+
+  public ObjectSelection(ZNetView view, bool singleUse, Vector3? scale, DataEntry? extraData)
+  {
+    if (view.GetComponent<Player>()) throw new InvalidOperationException("Players are not valid objects.");
+    Wrapper = new GameObject();
+    Wrapper.SetActive(false);
+
+    var zdo = view.GetZDO();
+    var prefabHash = zdo == null ? view.GetPrefabName().GetStableHashCode() : zdo.GetPrefab();
+    DataEntry? data = zdo == null ? extraData : DataHelper.Merge(new(zdo), extraData);
+
+    SingleUse = singleUse;
+    SelectedPrefab = HammerHelper.SafeInstantiate(view, Wrapper);
+    SelectedPrefab.transform.position = Vector3.zero;
+    UpdateVisuals(SelectedPrefab, data);
+    Objects.Add(new(prefabHash, view.m_syncInitialScale, data));
+    if (zdo != null)
+      PlaceRotation.Set(SelectedPrefab);
+    // Reset for zoop bounds check.
+    SelectedPrefab.transform.rotation = Quaternion.identity;
+    if (scale.HasValue)
+      SelectedPrefab.transform.localScale = scale.Value;
+    Scaling.Set(SelectedPrefab);
+    var hasSnaps = Snapping.GetSnapPoints(SelectedPrefab).Count > 0;
+    if (Configuration.Snapping != SnappingMode.Off && !hasSnaps)
+      Snapping.BuildSnaps(SelectedPrefab);
+  }
+  // This is for compatibility. Many mods don't expect a cleaned up ghost.
+  // So when selecting from the build menu, the ghost doesn't have to be cleaned up.
+  public ObjectSelection(Piece piece, bool singleUse)
+  {
+    Wrapper = new GameObject();
+    Wrapper.SetActive(false);
+    var view = piece.GetComponent<ZNetView>();
+    var prefabHash = view.GetPrefabName().GetStableHashCode();
+    SelectedPrefab = UnityEngine.Object.Instantiate(view.gameObject, Wrapper.transform);
+    SelectedPrefab.name = view.name;
+
+    SingleUse = singleUse;
+    Objects.Add(new(prefabHash, view.m_syncInitialScale, null));
+    Scaling.Set(SelectedPrefab);
+  }
+  public ObjectSelection(IEnumerable<ZNetView> views, bool singleUse, Vector3? scale, DataEntry? extraData)
+  {
+    Wrapper = new GameObject();
+    Wrapper.SetActive(false);
+
+    SingleUse = singleUse;
+    SelectedPrefab = new GameObject();
+    SelectedPrefab.transform.SetParent(Wrapper.transform);
+    if (scale.HasValue)
+      SelectedPrefab.transform.localScale = scale.Value;
+    SelectedPrefab.name = $"Multiple ({views.Count()})";
+    SelectedPrefab.transform.position = views.First().transform.position;
+    foreach (var view in views)
+    {
+      DataEntry? data = DataHelper.Merge(new(view.GetZDO()), extraData);
+      var obj = HammerHelper.ChildInstantiate(view, SelectedPrefab);
+      obj.transform.position = view.transform.position;
+      obj.transform.rotation = view.transform.rotation;
+      UpdateVisuals(obj, data);
+      Objects.Add(new(view.GetZDO().GetPrefab(), view.m_syncInitialScale, data));
+// >>>>>>> main
     }
 
     private readonly bool FromBuildMenu = false;
@@ -596,4 +673,39 @@ public partial class ObjectSelection : BaseSelection
         if (!FromBuildMenu)
             Hammer.SelectEmpty();
     }
+// <<<<<<< Argonaut_experimental
+// =======
+  }
+  public void RemoveObject(GameObject obj)
+  {
+    if (Objects.Count == 1)
+      return;
+    // Must be deactivated so that destroy doesn't activate it.
+    obj.SetActive(false);
+    obj.transform.SetParent(null);
+    UnityEngine.Object.Destroy(obj);
+    Objects.RemoveAt(Objects.Count - 1);
+    if (Objects.Count == 1)
+      ToSingle();
+    else if (Configuration.Snapping != SnappingMode.Off)
+      Snapping.RegenerateSnapPoints(SelectedPrefab);
+  }
+  private void ToSingle()
+  {
+    var obj = SelectedPrefab.transform.GetChild(0).gameObject;
+    HammerHelper.EnsurePiece(obj);
+    // Must transfer parent directly to prevent self-activation.
+    obj.transform.SetParent(Wrapper.transform);
+    // Must be deactivated so that destroy doesn't activate it.
+    SelectedPrefab.SetActive(false);
+    UnityEngine.Object.Destroy(SelectedPrefab);
+    SelectedPrefab = obj;
+    Objects = [.. Objects.Take(1)];
+  }
+  public override void Activate()
+  {
+    base.Activate();
+    Scaling.Set(SelectedPrefab);
+  }
+// >>>>>>> main
 }

@@ -25,6 +25,8 @@ public static class HammerHelper
   {
     var player = Helper.GetPlayer();
     var item = player.GetRightItem();
+    if (Hammer.IsInfinityHammer(item))
+      return "infinity_hammer";
     return item?.m_dropPrefab?.name ?? "";
   }
   public static void RemoveZDO(ZDO zdo)
@@ -335,8 +337,7 @@ public class PreventFishBecomingPieces
 {
   // Vanilla automatically turns placed item drops to pieces.
   // This removes body which breaks fishes (that have Piece for some reasoon).
-  // Also prevent pointless error message from missing Piece.
-  static bool Prefix(ItemDrop __instance) => __instance.GetComponent<Piece>() && !__instance.GetComponent<Fish>();
+  static bool Prefix(ItemDrop __instance) => !__instance.GetComponent<Fish>();
 }
 
 [HarmonyPatch(typeof(Fish), nameof(Fish.Awake))]

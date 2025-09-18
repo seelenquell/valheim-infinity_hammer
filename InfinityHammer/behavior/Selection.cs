@@ -33,6 +33,7 @@ public class SelectedObject
 
 public static class Selection
 {
+/* <<<<<<< Argonaut_experimental */
     public static BaseSelection                     BaseSelection = new();
     public static Dictionary<string, BaseSelection> Selections    = [];
     public static BaseSelection Get() => Selections.TryGetValue(HammerHelper.GetTool(), out var selection)
@@ -44,6 +45,8 @@ public static class Selection
             return;
         selection.Deactivate();
         selection.Destroy();
+        Hammer.SelectRepairIfEmpty();
+
         Selections.Remove(HammerHelper.GetTool());
     }
     public static void Destroy() {
@@ -60,6 +63,28 @@ public static class Selection
         var player = Helper.GetPlayer();
         player.SetupPlacementGhost();
         return player.m_placementGhost;
+/* =======
+  public static BaseSelection BaseSelection = new();
+  public static Dictionary<string, BaseSelection> Selections = [];
+  public static BaseSelection Get() => Selections.TryGetValue(HammerHelper.GetTool(), out var selection) ? selection : BaseSelection;
+  public static void Clear()
+  {
+    if (Configuration.UnfreezeOnSelect) Position.Unfreeze();
+    if (!Selections.TryGetValue(HammerHelper.GetTool(), out var selection))
+      return;
+    selection.Deactivate();
+    selection.Destroy();
+
+    Hammer.SelectRepairIfEmpty();
+    Selections.Remove(HammerHelper.GetTool());
+  }
+  public static void Destroy()
+  {
+    foreach (var selection in Selections.Values)
+    {
+      selection.Deactivate();
+      selection.Destroy();
+/// >>>>>>> main */
     }
 }
 
