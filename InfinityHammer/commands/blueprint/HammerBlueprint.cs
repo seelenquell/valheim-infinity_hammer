@@ -134,6 +134,7 @@ public class HammerBlueprintCommand
 
   private static BlueprintObject GetPlanBuildObject(string row, bool loadData)
   {
+    
     if (row.IndexOf(',') > -1) row = row.Replace(',', '.');
     var split = row.Split(';');
     var name = split[0];
@@ -163,7 +164,7 @@ public class HammerBlueprintCommand
   }
   private static Blueprint GetBuildShare(Blueprint bp, string[] rows, bool loadData)
   {
-    bp.Objects = rows.Select(r => GetBuildShareObject(r, loadData)).ToList();
+    bp.Objects = rows.Select(r => (GetBuildShareObject(r, loadData))as BlueprintObject).ToList() ;
     return bp;
   }
   private static BlueprintObject GetBuildShareObject(string row, bool loadData)

@@ -63,6 +63,18 @@ public partial class Configuration
   public static ConfigEntry<bool> configPlaceEmptyRooms;
   public static bool PlaceEmptyRooms => configPlaceEmptyRooms.Value;
   public static ConfigWrapper Wrapper;
+  
+  public static ConfigEntry<bool> configBlueprintNoChestContent;
+  public static bool BlueprintNoChestContent => configBlueprintNoChestContent.Value;
+
+  public static ConfigEntry<bool> configBlueprintNoFuel;
+  public static bool BlueprintNoFuel => configBlueprintNoFuel.Value;
+
+  public static ConfigEntry<bool> configBlueprintItemHolderReduceData;
+  public static bool BlueprintItemHolderReduceData => configBlueprintItemHolderReduceData.Value;
+  
+  
+ 
 
 #nullable enable
 
@@ -100,7 +112,14 @@ public partial class Configuration
     configDisableOffsetMessages = wrapper.Bind(section, "Disable offset messages", false, "Disables messages from changing placement offset.");
     configDisableScaleMessages = wrapper.Bind(section, "Disable scale messages", false, "Disables messages from changing the scale.");
     configDisableSelectMessages = wrapper.Bind(section, "Disable select messages", false, "Disables messages from selecting objects.");
-
+    section = "8. Json Blueprint Tests";
+    configBlueprintNoChestContent = wrapper.Bind(section, "Disable Chest Content Save", false, "Doesnt Save chest contents when saving blueprints.");
+    configBlueprintNoFuel  = wrapper.Bind(section, "Disable Fuel Save", false, "Doesnt Save the content of ItemHolders when saving blueprints.");
+    configBlueprintItemHolderReduceData = wrapper.Bind(section, "Reduced ItemHolder Data", false, "Does nothing atm.");
+      
+   
+    
+      
     InitOther(wrapper);
     InitTools(wrapper);
     InitBlueprint(wrapper);
