@@ -16,30 +16,21 @@ using ArgoZVars = Argo.Blueprint.ZVars;
 // But they have to be the same because selection is changed when zooping.
 public partial class ObjectSelection : BaseSelection
 {
-/* <<<<<<< Argonaut_experimental
-    // Unity doesn't run scripts for inactive objects.
-    // So an inactive object is used to store the selected object.
-    // This mimics the ZNetScene.m_namedPrefabs behavior.
-    private readonly GameObject           Wrapper;
-    public           List<SelectedObject> Objects = [];
-
-    public override void Destroy() {
-        base.Destroy();
-        UnityEngine.Object.Destroy(Wrapper);
-        Objects.Clear();
-        SelectedPrefab = null;
-======= */
-    // Unity doesn't run scripts for inactive objects.
-    // So an inactive object is used to store the selected object.
-    // This mimics the ZNetScene.m_namedPrefabs behavior.
-    private readonly GameObject           Wrapper;
-    public           List<SelectedObject> Objects = [];
-    public override void Destroy() {
-        base.Destroy();
-        UnityEngine.Object.Destroy(Wrapper);
-        Objects.Clear();
-        SelectedPrefab = null;
-    }
+  // Unity doesn't run scripts for inactive objects.
+  // So an inactive object is used to store the selected object.
+  // This mimics the ZNetScene.m_namedPrefabs behavior.
+  private readonly GameObject Wrapper;
+  public List<SelectedObject> Objects = [];
+  public TerrainData? TerrainInfo;
+  public float TerrainRadius = 0f;
+  public override void Destroy()
+  {
+    base.Destroy();
+    UnityEngine.Object.Destroy(Wrapper);
+    Objects.Clear();
+    TerrainInfo = null;
+    SelectedPrefab = null;
+  }
 
     // This is for compatibility. Many mods don't expect a cleaned up ghost.
     // So when selecting from the build menu, the ghost doesn't have to be cleaned up.
@@ -282,18 +273,25 @@ public partial class ObjectSelection : BaseSelection
         Scaling.Set(SelectedPrefab);
     }
 
-    public void Mirror() {
-        var i = 0;
-        foreach (Transform tr in SelectedPrefab.transform) {
-            var prefab = i < Objects.Count ? Objects[i].Prefab : 0;
-            i += 1;
-            if (Snapping.IsSnapPoint(tr.gameObject)) {
-                prefab =  0;
-                i      -= 1;
-            }
+  public void SetTerrainData(TerrainData terrainInfo, float terrainRadius)
+  {
+    TerrainInfo = terrainInfo;
+    TerrainRadius = terrainRadius;
+  }
 
-            tr.localPosition = new(tr.localPosition.x, tr.localPosition.y,
-                -tr.localPosition.z);
+  public void Mirror()
+  {
+    var i = 0;
+    foreach (Transform tr in SelectedPrefab.transform)
+    {
+      var prefab = i < Objects.Count ? Objects[i].Prefab : 0;
+      i += 1;
+      if (Snapping.IsSnapPoint(tr.gameObject))
+      {
+        prefab = 0;
+        i -= 1;
+      }
+      tr.localPosition = new(tr.localPosition.x, tr.localPosition.y, -tr.localPosition.z);
 
             var angles = tr.localEulerAngles;
             angles = new(angles.x, -angles.y, angles.z);
@@ -439,107 +437,178 @@ public partial class ObjectSelection : BaseSelection
             }
         }
 
-        if (data.TryGetInt(pars, Hash.Wear, out var wear) &&
-            obj.TryGetComponent<WearNTear>(out var wearNTear)) {
-            SetWear(wearNTear, wear);
-        }
-
-        if (data.TryGetInt(pars, Hash.Growth, out var growth) &&
-            obj.TryGetComponent<Plant>(out var plant)) {
-            SetGrowth(plant, growth);
-        }
+    if (data.TryGetInt(pars, Hash.Wear, out var wear) && obj.TryGetComponent<WearNTear>(out var wearNTear))
+    {
+      SetWear(wearNTear, wear);
+    }
+    if (data.TryGetInt(pars, Hash.Growth, out var growth) && obj.TryGetComponent<Plant>(out var plant))
+    {
+      SetGrowth(plant, growth);
+    }
+  }
+  private void CountObjects()
+  {
+    if (Objects.Count < 2) return;
+    SelectedPrefab.name = $"Multiple ({Snapping.CountActiveChildren(SelectedPrefab)})";
+    var piece = SelectedPrefab.GetComponent<Piece>();
+    if (!piece) piece = SelectedPrefab.AddComponent<Piece>();
+    piece.m_clipEverything = Snapping.CountSnapPoints(SelectedPrefab) == 0;
+    piece.m_name = SelectedPrefab.name;
+    Dictionary<int, int> counts = Objects.GroupBy(obj => obj.Prefab).ToDictionary(kvp => kvp.Key, kvp => kvp.Count());
+    var topKeys = counts.OrderBy(kvp => kvp.Value).Reverse().ToArray();
+    if (topKeys.Length <= 5)
+      piece.m_description = string.Join("\n", topKeys.Select(kvp => $"{ZNetScene.instance.GetPrefab(kvp.Key).name}: {kvp.Value}"));
+    else
+    {
+      piece.m_description = string.Join("\n", topKeys.Take(4).Select(kvp => $"{ZNetScene.instance.GetPrefab(kvp.Key).name}: {kvp.Value}"));
+      piece.m_description += $"\n{topKeys.Length - 4} other types: {topKeys.Skip(4).Sum(kvp => kvp.Value)}";
+    }
+  }
+  public override DataEntry? GetData(int index = 0)
+  {
+    if (Objects.Count <= index) throw new InvalidOperationException("Invalid index.");
+    return Objects[index].Data;
+  }
+  public override int GetPrefab(int index = 0)
+  {
+    if (Objects.Count <= index) throw new InvalidOperationException("Invalid index.");
+    return Objects[index].Prefab;
+  }
+  public override bool IsScalingSupported() => Objects.All(obj => obj.Scalable);
+  public override GameObject GetPrefab(GameObject obj)
+  {
+    UndoHelper.BeginSubAction();
+    if (Objects.Count == 1)
+    {
+      var name = Utils.GetPrefabName(obj);
+      var tr = HammerHelper.GetPlacementGhost().transform;
+      var zdo = DataHelper.Init(StringExtensionMethods.GetStableHashCode(name), tr, GetData(0));
+      if (zdo != null)
+        DungeonRooms.Reposition(zdo, tr);
+      return ZNetScene.instance.GetPrefab(name);
+    }
+    var dummy = new GameObject
+    {
+      name = "Blueprint"
+    };
+    dummy.AddComponent<Piece>();
+    return dummy;
+  }
+  public override void AfterPlace(GameObject obj)
+  {
+    if (Objects.Count == 1)
+    {
+      var view = obj.GetComponent<ZNetView>();
+      // Hoe adds pieces too.
+      if (!view) return;
+      view.m_body?.WakeUp();
+      PostProcessPlaced(obj);
+      ApplyTerrainChanges(obj.transform.position, obj.transform.rotation);
+    }
+    else
+    {
+      HandleMultiple(HammerHelper.GetPlacementGhost());
+      UnityEngine.Object.Destroy(obj);
     }
 
-    private void CountObjects() {
-        if (Objects.Count < 2) return;
-        SelectedPrefab.name =
-            $"Multiple ({Snapping.CountActiveChildren(SelectedPrefab)})";
-        var piece         = SelectedPrefab.GetComponent<Piece>();
-        if (!piece) piece = SelectedPrefab.AddComponent<Piece>();
-        piece.m_clipEverything = Snapping.CountSnapPoints(SelectedPrefab) == 0;
-        piece.m_name           = SelectedPrefab.name;
-        Dictionary<int, int> counts = Objects.GroupBy(obj => obj.Prefab)
-                                             .ToDictionary(kvp => kvp.Key, kvp => kvp.Count());
-        var topKeys = counts.OrderBy(kvp => kvp.Value).Reverse().ToArray();
-        if (topKeys.Length <= 5)
-            piece.m_description = string.Join("\n",
-                topKeys.Select(kvp =>
-                    $"{ZNetScene.instance.GetPrefab(kvp.Key).name}: {kvp.Value}"));
-        else {
-            piece.m_description = string.Join("\n",
-                topKeys.Take(4).Select(kvp =>
-                    $"{ZNetScene.instance.GetPrefab(kvp.Key).name}: {kvp.Value}"));
-            piece.m_description +=
-                $"\n{topKeys.Length - 4} other types: {topKeys.Skip(4).Sum(kvp => kvp.Value)}";
-        }
-    }
-    public override DataEntry? GetData(int index = 0) {
-        if (Objects.Count <= index)
-            throw new InvalidOperationException("Invalid index.");
-        return Objects[index].Data;
-    }
+    UndoHelper.EndSubAction();
+  }
 
-    public override int GetPrefab(int index = 0) {
-        if (Objects.Count <= index)
-            throw new InvalidOperationException("Invalid index.");
-        return Objects[index].Prefab;
-    }
+  private void ApplyTerrainChanges(Vector3 placementPosition, Quaternion placementRotation)
+  {
+    if (TerrainInfo == null) return;
 
-    public override bool IsScalingSupported() =>
-        Objects.All(obj => obj.Scalable);
+    // Calculate rotation difference specifically along Y-axis in degrees
+    var originalRotation = TerrainInfo.FirstNodeRotation;
 
-    public override GameObject GetPrefab(GameObject obj) {
-        UndoHelper.BeginSubAction();
-        if (Objects.Count == 1) {
-            var name = Utils.GetPrefabName(obj);
-            var tr   = HammerHelper.GetPlacementGhost().transform;
-            var zdo = DataHelper.Init(
-                StringExtensionMethods.GetStableHashCode(name), tr, GetData(0));
-            if (zdo != null)
-                DungeonRooms.Reposition(zdo, tr);
-            return ZNetScene.instance.GetPrefab(name);
-        }
+    // Calculate the rotation difference by finding the quaternion that transforms from original to placement
+    var rotationDifference = placementRotation * Quaternion.Inverse(originalRotation);
 
-        var dummy = new GameObject {
-            name = "Blueprint"
-        };
-        dummy.AddComponent<Piece>();
-        return dummy;
-    }
+    // Extract the Y-axis rotation from the difference quaternion
+    var yRotationDifference = rotationDifference.eulerAngles.y;
 
-    public override void AfterPlace(GameObject obj) {
-        if (Objects.Count == 1) {
-            var view = obj.GetComponent<ZNetView>();
-            // Hoe adds pieces too.
-            if (!view) return;
-            view.m_body?.WakeUp();
-            PostProcessPlaced(obj);
-        } else {
-            HandleMultiple(HammerHelper.GetPlacementGhost());
-            UnityEngine.Object.Destroy(obj);
-        }
+    // Convert to signed angle (-180 to +180 degrees)
+    if (yRotationDifference > 180f)
+      yRotationDifference -= 360f;
 
-        UndoHelper.EndSubAction();
-    }
+    // Convert to radians for the terrain lookup
+    var rotation = Mathf.Deg2Rad * yRotationDifference;
 
-    private void HandleMultiple(GameObject? ghost) {
-        var children = Snapping.GetChildren(ghost);
-        for (var i = 0; i < children.Count; i++) {
-            var ghostChild = children[i];
-            var hash       = GetPrefab(i);
-            var prefab     = ZNetScene.instance.GetPrefab(hash);
-            if (prefab) {
-                var zdo =
-                    DataHelper.Init(hash, ghostChild.transform, GetData(i));
-                if (zdo != null)
-                    DungeonRooms.Reposition(zdo, ghostChild.transform);
-                var childObj = UnityEngine.Object.Instantiate(prefab,
-                    ghostChild.transform.position,
-                    ghostChild.transform.rotation);
-                PostProcessPlaced(childObj);
+    // Get terrain compilers around the placement position
+    var compilers = Terrain.GetCompilers(placementPosition, new(TerrainRadius));
+
+    foreach (var compiler in compilers)
+    {
+      var max = compiler.m_width + 1;
+      for (int x = 0; x < max; x++)
+      {
+        for (int z = 0; z < max; z++)
+        {
+          var nodePos = VertexToWorld(compiler.m_hmap, x, z);
+          var index = z * max + x;
+
+          // Apply height changes using optimized lookup
+          var nearestHeight = TerrainInfo.FindNearestHeight(nodePos, placementPosition, rotation);
+          if (nearestHeight != null)
+          {
+            if (index < compiler.m_hmap.m_heights.Count)
+            {
+              var altitude = nearestHeight.Value + placementPosition.y;
+              compiler.m_levelDelta[index] += altitude - compiler.m_hmap.m_heights[index];
+              compiler.m_smoothDelta[index] = 0f;
+              compiler.m_modifiedHeight[index] = compiler.m_levelDelta[index] != 0f;
             }
+          }
+
+          // Apply paint changes using optimized lookup
+          var paintWorldPos = nodePos;
+          //paintWorldPos.x += 0.5f;
+          //paintWorldPos.z += 0.5f;
+          var nearestPaint = TerrainInfo.FindNearestPaint(paintWorldPos, placementPosition, rotation);
+          if (nearestPaint != null)
+          {
+            if (index < compiler.m_paintMask.Length)
+            {
+              compiler.m_paintMask[index] = nearestPaint.Value;
+              compiler.m_modifiedPaint[index] = true;
+            }
+          }
         }
+      }
     }
+
+    foreach (var compiler in compilers)
+      Terrain.Save(compiler);
+    ClutterSystem.instance?.ResetGrass(placementPosition, TerrainRadius);
+  }
+
+  private static Vector3 VertexToWorld(Heightmap hmap, int x, int z)
+  {
+    var vector = hmap.transform.position;
+    vector.x += (x - hmap.m_width / 2) * hmap.m_scale;
+    vector.z += (z - hmap.m_width / 2) * hmap.m_scale;
+    return vector;
+  }
+  private void HandleMultiple(GameObject ghost)
+  {
+    var children = Snapping.GetChildren(ghost);
+    for (var i = 0; i < children.Count; i++)
+    {
+      var ghostChild = children[i];
+      var hash = GetPrefab(i);
+      var prefab = ZNetScene.instance.GetPrefab(hash);
+      if (prefab)
+      {
+        var zdo = DataHelper.Init(hash, ghostChild.transform, GetData(i));
+        if (zdo != null)
+          DungeonRooms.Reposition(zdo, ghostChild.transform);
+        var childObj = UnityEngine.Object.Instantiate(prefab, ghostChild.transform.position, ghostChild.transform.rotation);
+        PostProcessPlaced(childObj);
+      }
+      if (i == 0)
+        ApplyTerrainChanges(ghostChild.transform.position, ghostChild.transform.rotation);
+    }
+  }
 
     public GameObject AddObject(ZNetView view, Vector3 pos) {
         if (Objects.Count == 1)
