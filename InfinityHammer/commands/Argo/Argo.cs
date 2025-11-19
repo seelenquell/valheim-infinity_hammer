@@ -2,12 +2,13 @@
 using System.IO;
 using ServerDevcommands;
 using Argo.DataAnalysis;
+using Argo.DataMining;
 
 namespace InfinityHammer;
 
 public class ArgoExportPrefabData
 {
-    public ArgoExportPrefabData() {
+    /*public ArgoExportPrefabData() {
         AutoComplete.Register("argo_export_prefab", (int index) => {
             if (index == 0) return ParameterInfo.Create("File name.");
             return [];
@@ -30,7 +31,7 @@ public class ArgoExportPrefabData
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
 
                     PrefabDataMining prefabData   = PrefabDataMining.ReadData();
-                    var              lines        = prefabData.SerializeData();
+                    var              lines        = prefabData.SerializePrefabs();
                     StreamWriter     streamWriter = new StreamWriter(path, false);
 
                     using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite)) {
@@ -44,5 +45,5 @@ public class ArgoExportPrefabData
             });
 
         { }
-    }
+    }*/
 }

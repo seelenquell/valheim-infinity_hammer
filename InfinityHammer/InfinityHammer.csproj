@@ -90,6 +90,12 @@
         <Reference Include="Valheim-Argonaut">
             <HintPath>..\..\Libs\Valheim-Argonaut.dll</HintPath>
         </Reference>
+        <Reference Include="Valheim-Argonaut.Core">
+          <HintPath>..\..\Libs\Valheim-Argonaut.Core.dll</HintPath>
+        </Reference>
+        <Reference Include="Valheim-Argonaut.Datamining">
+          <HintPath>..\..\Libs\Valheim-Argonaut.Datamining.dll</HintPath>
+        </Reference>
         <Reference Include="WorldEditCommands.dll">
             <HintPath>..\..\Libs\WorldEditCommands.dll</HintPath>
         </Reference>
